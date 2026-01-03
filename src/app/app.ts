@@ -27,9 +27,16 @@ import { HttpClient, HttpEventType, HttpClientModule } from '@angular/common/htt
 
           <div class="flex items-center gap-3">
             @if (isAuthenticated()) {
-              <div class="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200 shadow-sm">
-                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                <span class="text-sm font-medium">Đã kết nối YouTube</span>
+              <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-lg border border-green-200 shadow-sm">
+                  <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  <span class="text-sm font-medium">Đã kết nối YouTube</span>
+                </div>
+                <button (click)="handleLogout()" class="text-slate-400 hover:text-red-500 p-2 transition-colors" title="Ngắt kết nối">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </button>
               </div>
             } @else {
               <button (click)="handleLogin()" class="bg-white border border-slate-300 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2 text-sm">
@@ -409,6 +416,20 @@ export class App {
     });
   }
 
+  handleLogout() {
+    // API logout đơn giản để xóa token ở phía Backend
+    this.http.post(`${this.API_URL}/logout`, {}).subscribe({
+      next: () => {
+        this.isAuthenticated.set(false);
+        this.resetAll();
+      },
+      error: () => {
+        // Fallback: Vẫn ngắt kết nối ở phía client nếu BE lỗi
+        this.isAuthenticated.set(false);
+      }
+    });
+  }
+
   onFileSelected(event: any) {
     const f = event.target.files[0];
     if (f) this.processFile(f);
@@ -423,7 +444,7 @@ export class App {
 
   private processFile(f: File) {
     if (f.type.startsWith('video/')) {
-      if (f.size > 20 * 1024 * 1024) { // Giới hạn giả định cho trình duyệt
+      if (f.size > 20 * 1024 * 1024) {
         this.error.set('File video quá lớn (Giới hạn tối ưu: 20MB). Vui lòng chọn tệp nhỏ hơn để AI xử lý mượt mà.');
         return;
       }
