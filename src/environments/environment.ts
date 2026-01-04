@@ -2,9 +2,6 @@
  * Tệp cấu hình môi trường cho ứng dụng.
  * Trong thực tế, bạn sẽ có environment.ts cho phát triển và environment.prod.ts cho triển khai.
  */
-import {env} from "@ngx-env/builder/dist/builders/c";
-
-console.log(env);
 export const environment = {
   production: false,
   youtubeApiUrl: 'http://localhost:5000',
