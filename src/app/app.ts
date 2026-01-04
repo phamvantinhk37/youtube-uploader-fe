@@ -122,6 +122,34 @@ import { HttpClient, HttpEventType, HttpClientModule } from '@angular/common/htt
               </div>
 
               <div class="p-8 space-y-8">
+                <!-- Thumbnail Upload -->
+                <div>
+                  <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Ảnh bìa video (Thumbnail)</label>
+                  <div class="flex gap-6 items-start">
+                    <div
+                      (click)="thumbInput.click()"
+                      class="w-48 aspect-video bg-slate-100 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-200/50 transition-all overflow-hidden relative group"
+                    >
+                      <input #thumbInput type="file" class="hidden" accept="image/*" (change)="onThumbnailSelected($event)" />
+                      @if (thumbnailPreview()) {
+                        <img [src]="thumbnailPreview()" class="w-full h-full object-cover" />
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <span class="text-white text-xs font-bold uppercase">Thay đổi ảnh</span>
+                        </div>
+                      } @else {
+                        <svg class="w-8 h-8 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Chọn ảnh bìa</span>
+                      }
+                    </div>
+                    <div class="flex-1 space-y-2">
+                      <p class="text-xs text-slate-500 leading-relaxed">Một ảnh bìa thu hút giúp video của bạn có tỷ lệ nhấp chuột cao hơn. Bạn có thể tự tải lên hoặc đợi AI gợi ý phong cách.</p>
+                      @if (thumbnailPreview()) {
+                        <button (click)="thumbnail.set(null); thumbnailPreview.set(null)" class="text-[10px] font-bold text-red-500 uppercase hover:underline">Xóa ảnh bìa</button>
+                      }
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Row 1: Tiêu đề -->
                 <div>
                   <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tiêu đề video</label>
@@ -170,7 +198,7 @@ import { HttpClient, HttpEventType, HttpClientModule } from '@angular/common/htt
                   </div>
                 </div>
 
-                <!-- Row 4: Trạng thái hiển thị (Đã chuyển xuống sau cùng) -->
+                <!-- Row 4: Trạng thái hiển thị -->
                 <div class="pt-4 border-t border-slate-100">
                   <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Cài đặt hiển thị</label>
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -206,9 +234,20 @@ import { HttpClient, HttpEventType, HttpClientModule } from '@angular/common/htt
                   <span class="text-xs font-bold text-slate-500">Kích thước:</span>
                   <span class="text-xs font-black text-slate-700">{{ fileSizeMb() }} MB</span>
                 </div>
+                <!-- CẬP NHẬT: Thêm thông tin chế độ hiển thị -->
                 <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <span class="text-xs font-bold text-slate-500">Chế độ:</span>
-                  <span class="text-xs font-black text-red-600 uppercase">{{ getPrivacyLabel() }}</span>
+                  <span class="text-xs font-bold text-slate-500">Chế độ hiển thị:</span>
+                  <span class="text-xs font-black px-2 py-1 rounded bg-white border border-slate-200" [ngClass]="{
+                    'text-green-600': metadata.privacyStatus === 'public',
+                    'text-orange-600': metadata.privacyStatus === 'unlisted',
+                    'text-slate-600': metadata.privacyStatus === 'private'
+                  }">
+                    {{ getPrivacyLabel() }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <span class="text-xs font-bold text-slate-500">Ảnh bìa:</span>
+                  <span class="text-xs font-black" [class.text-green-600]="thumbnail()" [class.text-slate-400]="!thumbnail()">{{ thumbnail() ? 'Đã chọn ✅' : 'Chưa có ❌' }}</span>
                 </div>
               </div>
 
@@ -256,6 +295,8 @@ export class App {
   private readonly apiKey = "AIzaSyBvZLI52YsfO3XqiwJ5euYLjpsYYjvUpLA";
 
   file = signal<File | null>(null);
+  thumbnail = signal<File | null>(null);
+  thumbnailPreview = signal<string | null>(null);
   dragActive = signal(false);
   uploadStatus = signal<'idle' | 'uploading' | 'success' | 'error'>('idle');
   progress = signal(0);
@@ -281,8 +322,9 @@ export class App {
     return f ? (f.size / (1024 * 1024)).toFixed(2) : '0';
   });
 
+  // Cải thiện hàm lấy nhãn hiển thị
   getPrivacyLabel() {
-    return this.privacyOptions.find(o => o.id === this.metadata.privacyStatus)?.label || '---';
+    return this.privacyOptions.find(o => o.id === this.metadata.privacyStatus)?.label || 'Công khai';
   }
 
   @HostListener('window:message', ['$event'])
@@ -321,22 +363,20 @@ export class App {
     try {
       const base64Data = await this.fileToBase64(videoFile);
       const systemPrompt = `Bạn là một chuyên gia YouTube Vision AI. Bạn sẽ được cung cấp một tệp video.
-      Nhiệm vụ của bạn là xem video này và tạo Metadata dựa TRỰC TIẾP trên những gì diễn ra trong video (hình ảnh, âm thanh, hành động).
+      Nhiệm vụ của bạn là xem video này và tạo Metadata dựa TRỰC TIẾP trên những gì diễn ra trong video.
 
       BẮT BUỘC trả về JSON với cấu trúc:
       {
         "title": "Tiêu đề hấp dẫn, chuẩn SEO",
-        "description": "Mô tả chi tiết nội dung video, có thể bao gồm timeline nếu được yêu cầu",
+        "description": "Mô tả chi tiết nội dung video",
         "tags": ["tag1", "tag2", "tag3"]
       }
-
-      Chế độ hiện tại: ${mode}
       Ngôn ngữ: Tiếng Việt.`;
 
       let userQuery = "";
       switch(mode) {
         case 'suggest_all': userQuery = "Hãy xem video này và đề xuất tiêu đề, mô tả và bộ tags tối ưu nhất dựa trên nội dung thực tế."; break;
-        case 'title_only': userQuery = "Dựa trên nội dung video, hãy đặt một tiêu đề cực kỳ 'click-bait' nhưng vẫn trung thực."; break;
+        case 'title_only': userQuery = "Dựa trên nội dung video, hãy đặt một tiêu đề thu hút."; break;
         case 'tags_only': userQuery = "Liệt kê các từ khóa (tags) quan trọng nhất xuất hiện trong video này."; break;
         case 'summarize': userQuery = "Tóm tắt ngắn gọn nội dung video này trong 3 câu."; break;
         case 'chapters': userQuery = "Phân tích video và tạo các mốc thời gian (chapters) quan trọng."; break;
@@ -435,6 +475,16 @@ export class App {
     if (f) this.processFile(f);
   }
 
+  onThumbnailSelected(event: any) {
+    const f = event.target.files[0];
+    if (f && f.type.startsWith('image/')) {
+      this.thumbnail.set(f);
+      const reader = new FileReader();
+      reader.onload = () => this.thumbnailPreview.set(reader.result as string);
+      reader.readAsDataURL(f);
+    }
+  }
+
   onDrop(event: DragEvent) {
     event.preventDefault();
     this.dragActive.set(false);
@@ -470,6 +520,10 @@ export class App {
     formData.append('title', this.metadata.title);
     formData.append('description', this.metadata.description);
     formData.append('privacyStatus', this.metadata.privacyStatus);
+
+    const thumb = this.thumbnail();
+    if (thumb) formData.append('thumbnail', thumb);
+
     if (this.metadata.tags.length > 0) formData.append('tags', this.metadata.tags.join(','));
 
     this.http.post(`${this.API_URL}/upload`, formData, {
@@ -492,6 +546,8 @@ export class App {
 
   resetFile() {
     this.file.set(null);
+    this.thumbnail.set(null);
+    this.thumbnailPreview.set(null);
     this.progress.set(0);
     this.uploadStatus.set('idle');
   }
