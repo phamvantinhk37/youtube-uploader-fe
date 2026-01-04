@@ -122,28 +122,19 @@ import { HttpClient, HttpEventType, HttpClientModule } from '@angular/common/htt
               </div>
 
               <div class="p-8 space-y-8">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tiêu đề video</label>
-                    <div class="relative group">
-                      <input type="text" [(ngModel)]="metadata.title" placeholder="AI sẽ gợi ý tiêu đề sau khi xem video..."
-                        class="w-full border border-slate-200 rounded-xl p-4 pr-12 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 outline-none transition-all shadow-sm font-medium" />
-                      <button (click)="askGemini('title_only')" [disabled]="!file() || isSuggesting()" class="absolute right-3 top-3 p-1.5 text-slate-300 hover:text-indigo-500 transition-colors disabled:opacity-30">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Trạng thái hiển thị</label>
-                    <select [(ngModel)]="metadata.privacyStatus" class="w-full border border-slate-200 rounded-xl p-4 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 outline-none transition-all shadow-sm font-medium bg-white">
-                      @for (opt of privacyOptions; track opt.id) {
-                        <option [value]="opt.id">{{ opt.label }}</option>
-                      }
-                    </select>
+                <!-- Row 1: Tiêu đề -->
+                <div>
+                  <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tiêu đề video</label>
+                  <div class="relative group">
+                    <input type="text" [(ngModel)]="metadata.title" placeholder="AI sẽ gợi ý tiêu đề sau khi xem video..."
+                      class="w-full border border-slate-200 rounded-xl p-4 pr-12 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 outline-none transition-all shadow-sm font-medium" />
+                    <button (click)="askGemini('title_only')" [disabled]="!file() || isSuggesting()" class="absolute right-3 top-3 p-1.5 text-slate-300 hover:text-indigo-500 transition-colors disabled:opacity-30">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </button>
                   </div>
                 </div>
 
+                <!-- Row 2: Mô tả -->
                 <div>
                   <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Mô tả chi tiết</label>
                   <div class="relative">
@@ -160,9 +151,10 @@ import { HttpClient, HttpEventType, HttpClientModule } from '@angular/common/htt
                   </div>
                 </div>
 
+                <!-- Row 3: Tags -->
                 <div>
                   <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Thẻ Tags (SEO)</label>
-                  <div class="flex flex-wrap gap-2 p-4 min-h-[60px] bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
+                  <div class="flex flex-wrap gap-2 p-4 min-h-[60px] bg-slate-50 rounded-2xl border border-slate-100 shadow-inner mb-2">
                     @for (tag of metadata.tags; track tag) {
                       <span class="bg-white border border-slate-200 px-4 py-1.5 rounded-xl text-xs font-bold text-slate-700 shadow-sm flex items-center gap-2 group">
                         #{{ tag }}
@@ -173,6 +165,25 @@ import { HttpClient, HttpEventType, HttpClientModule } from '@angular/common/htt
                     } @empty {
                       <button (click)="askGemini('tags_only')" [disabled]="!file() || isSuggesting()" class="text-slate-400 text-sm italic hover:text-indigo-500 transition-colors disabled:opacity-50">
                         {{ isSuggesting() ? 'Đang phân tích hình ảnh...' : 'Nhấn để AI tự động trích xuất tags từ video...' }}
+                      </button>
+                    }
+                  </div>
+                </div>
+
+                <!-- Row 4: Trạng thái hiển thị (Đã chuyển xuống sau cùng) -->
+                <div class="pt-4 border-t border-slate-100">
+                  <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Cài đặt hiển thị</label>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    @for (opt of privacyOptions; track opt.id) {
+                      <button
+                        (click)="metadata.privacyStatus = opt.id"
+                        [class.border-red-500]="metadata.privacyStatus === opt.id"
+                        [class.bg-red-50]="metadata.privacyStatus === opt.id"
+                        [class.text-red-600]="metadata.privacyStatus === opt.id"
+                        class="flex items-center gap-3 p-4 rounded-2xl border-2 transition-all font-bold text-sm text-slate-500 bg-white hover:bg-slate-50"
+                      >
+                        <div class="w-4 h-4 rounded-full border-4 flex-shrink-0" [class.border-red-500]="metadata.privacyStatus === opt.id" [class.border-slate-200]="metadata.privacyStatus !== opt.id"></div>
+                        {{ opt.label }}
                       </button>
                     }
                   </div>
@@ -194,6 +205,10 @@ import { HttpClient, HttpEventType, HttpClientModule } from '@angular/common/htt
                 <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <span class="text-xs font-bold text-slate-500">Kích thước:</span>
                   <span class="text-xs font-black text-slate-700">{{ fileSizeMb() }} MB</span>
+                </div>
+                <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <span class="text-xs font-bold text-slate-500">Chế độ:</span>
+                  <span class="text-xs font-black text-red-600 uppercase">{{ getPrivacyLabel() }}</span>
                 </div>
               </div>
 
@@ -238,7 +253,7 @@ import { HttpClient, HttpEventType, HttpClientModule } from '@angular/common/htt
 export class App {
   private readonly http = inject(HttpClient);
   private readonly API_URL = 'http://localhost:5000';
-  private readonly apiKey = "AIzaSyCfdtuOMCgqAnVtUbUkiWOYlq4ZhSY7OH8";
+  private readonly apiKey = "AIzaSyBvZLI52YsfO3XqiwJ5euYLjpsYYjvUpLA";
 
   file = signal<File | null>(null);
   dragActive = signal(false);
@@ -266,6 +281,10 @@ export class App {
     return f ? (f.size / (1024 * 1024)).toFixed(2) : '0';
   });
 
+  getPrivacyLabel() {
+    return this.privacyOptions.find(o => o.id === this.metadata.privacyStatus)?.label || '---';
+  }
+
   @HostListener('window:message', ['$event'])
   onMessage(event: MessageEvent) {
     if (event.data === 'auth_success') {
@@ -277,7 +296,6 @@ export class App {
     this.checkAuth();
   }
 
-  // Chuyển đổi video thành Base64
   private async fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -301,10 +319,7 @@ export class App {
     this.error.set('');
 
     try {
-      // 1. Chuyển video sang base64
       const base64Data = await this.fileToBase64(videoFile);
-
-      // 2. Chuẩn bị prompt dựa trên nội dung video trực tiếp
       const systemPrompt = `Bạn là một chuyên gia YouTube Vision AI. Bạn sẽ được cung cấp một tệp video.
       Nhiệm vụ của bạn là xem video này và tạo Metadata dựa TRỰC TIẾP trên những gì diễn ra trong video (hình ảnh, âm thanh, hành động).
 
@@ -327,18 +342,11 @@ export class App {
         case 'chapters': userQuery = "Phân tích video và tạo các mốc thời gian (chapters) quan trọng."; break;
       }
 
-      // 3. Gọi API với dữ liệu video
       const result = await this.callGeminiVisionAPI(systemPrompt, userQuery, base64Data, videoFile.type);
 
       if (result) {
         if (result.title && (mode === 'title_only' || mode === 'suggest_all')) this.metadata.title = result.title;
-        if (result.description) {
-          if (mode === 'summarize' || mode === 'chapters') {
-            this.metadata.description = result.description;
-          } else if (mode === 'suggest_all') {
-            this.metadata.description = result.description;
-          }
-        }
+        if (result.description) this.metadata.description = result.description;
         if (result.tags && Array.isArray(result.tags)) {
           if (mode === 'tags_only' || mode === 'suggest_all') {
             this.metadata.tags = result.tags;
@@ -348,7 +356,7 @@ export class App {
         }
       }
     } catch (err) {
-      this.error.set('Không thể phân tích video. Có thể file quá lớn hoặc lỗi kết nối. Hãy thử lại.');
+      this.error.set('Không thể phân tích video. Hãy thử lại.');
       console.error(err);
     } finally {
       this.isSuggesting.set(false);
@@ -388,13 +396,9 @@ export class App {
         });
 
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-
         const data = await response.json();
         const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!rawText) throw new Error('AI returned empty content');
-
         return JSON.parse(rawText);
-
       } catch (err) {
         retries++;
         if (retries === 5) throw err;
@@ -417,16 +421,12 @@ export class App {
   }
 
   handleLogout() {
-    // API logout đơn giản để xóa token ở phía Backend
     this.http.post(`${this.API_URL}/logout`, {}).subscribe({
       next: () => {
         this.isAuthenticated.set(false);
         this.resetAll();
       },
-      error: () => {
-        // Fallback: Vẫn ngắt kết nối ở phía client nếu BE lỗi
-        this.isAuthenticated.set(false);
-      }
+      error: () => this.isAuthenticated.set(false)
     });
   }
 
@@ -445,14 +445,14 @@ export class App {
   private processFile(f: File) {
     if (f.type.startsWith('video/')) {
       if (f.size > 20 * 1024 * 1024) {
-        this.error.set('File video quá lớn (Giới hạn tối ưu: 20MB). Vui lòng chọn tệp nhỏ hơn để AI xử lý mượt mà.');
+        this.error.set('File quá lớn (Giới hạn: 20MB).');
         return;
       }
       this.file.set(f);
       this.metadata.title = f.name.replace(/\.[^/.]+$/, "");
       this.error.set('');
     } else {
-      this.error.set('Chỉ chấp nhận các tệp định dạng video.');
+      this.error.set('Chỉ chấp nhận video.');
     }
   }
 
@@ -485,7 +485,7 @@ export class App {
       },
       error: (err) => {
         this.uploadStatus.set('idle');
-        this.error.set(err.error?.error || 'Lỗi không xác định khi tải lên YouTube.');
+        this.error.set(err.error?.error || 'Lỗi tải lên.');
       }
     });
   }
