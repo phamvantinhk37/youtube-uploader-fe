@@ -4,7 +4,7 @@
  */
 export const environment = {
   production: false,
-  youtubeApiUrl: 'https://youtube-uploader-be.onrender.com/',
+  youtubeApiUrl: 'https://youtube-uploader-be.onrender.com',
   geminiApiKey: "AIzaSyBvZLI52YsfO3XqiwJ5euYLjpsYYjvUpLA", // Khóa API để trống để đảm bảo bảo mật khi chia sẻ code
   appId: "youtube-uploader-prod"
 };
